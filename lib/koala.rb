@@ -152,16 +152,25 @@ module Koala
         components 
       end
 
-      def fetch_token_string(code)
-        Koala.make_request("oauth/access_token", {
-          :client_id => @app_id, 
-          :redirect_uri => @oauth_callback_url, 
-          :client_secret => @app_secret, 
-          :code => code
-        }, "get")
+      def fetch_token_string(code = nil)
+        args = {
+          :client_id => @app_id,
+          :client_secret => @app_secret}
+        if code # session-based token
+          args.merge! {
+            :redirect_uri => @oauth_callback_url,
+            :code => code}
+          verb = "get"
+        else # non-session token (used for subscriptions)
+          args.merge! {
+            :type => 'client_cred'}
+          verb = "post"
+        end
+        Koala.make_request("oauth/access_token", args, verb)
       end
       
-      def get_access_token(code)
+      # do not pass code to get an non-session token
+      def get_access_token(code = nil)
         result = fetch_token_string(code)
         
         # if we have an error, parse the error JSON and raise an error
@@ -169,6 +178,7 @@ module Koala
         # otherwise, parse the access token
         parse_access_token(result)
       end
+      
     end
   end
   
